@@ -1,45 +1,60 @@
-import React, { Component } from 'react';
+import React, { Component } from "react";
 
-import classes from './App.module.css';
-import Persons from '../components/Persons/Persons';
-import Cockpit from '../components/Cockpit/Cockpit';
+import classes from "./App.module.css";
+import Persons from "../components/Persons/Persons";
+import Cockpit from "../components/Cockpit/Cockpit";
+import Aux from '../hoc/Auxiliary';
+import withClass from '../hoc/withClass';
+import AuthContext from '../context/auth-context'
+
 
 class App extends Component {
   constructor(props) {
     super(props);
-    console.log('[App.js] constructor');
+    console.log("[App.js] constructor");
   }
 
   state = {
     persons: [
-      { id: 'asfa1', name: 'Max', age: 28 },
-      { id: 'vasdf1', name: 'Manu', age: 29 },
-      { id: 'asdf11', name: 'Stephanie', age: 26 }
+      { id: "asfa1", name: "Max", age: 28 },
+      { id: "vasdf1", name: "Manu", age: 29 },
+      { id: "asdf11", name: "Stephanie", age: 26 },
     ],
-    otherState: 'some other value',
-    showPersons: false
+    otherState: "some other value",
+    showPersons: false,
+    showCockpit : true,
+    authenticated : false
   };
 
-  static getDerivedStateFromProps(props, state) {
-    console.log('[App.js] getDerivedStateFromProps', props);
-    return state;
-  }
+  // static getDerivedStateFromProps(props, state) {
+  //   console.log("[App.js] getDerivedStateFromProps", props);
+  //   return state;
+  // }
 
-  componentWillMount() {
-    console.log('[App.js] componentWillMount');
-  }
+  // componentWillMount() {
+  //   console.log("[App.js] componentWillMount");
+  // }
 
   componentDidMount() {
-    console.log('[App.js] componentDidMount');
+    console.log("[App.js] componentDidMount");
+  }
+
+  shouldComponentUpdate(nextProps,nextState){
+    console.log('[App.js] shouldComponentUpdate');
+    return true;
+  }
+
+  componentDidUpdate(){
+    console.log("[App.js] componentDidUpdate");
   }
 
   nameChangedHandler = (event, id) => {
-    const personIndex = this.state.persons.findIndex(p => {
+    const personIndex = this.state.persons.findIndex((p) => {
       return p.id === id;
     });
 
     const person = {
-      ...this.state.persons[personIndex]
+      ...this.state.persons[personIndex],
     };
 
     // const person = Object.assign({}, this.state.persons[personIndex]);
@@ -52,11 +67,13 @@ class App extends Component {
     this.setState({ persons: persons });
   };
 
-  deletePersonHandler = personIndex => {
+  deletePersonHandler = (personIndex) => {
     // const persons = this.state.persons.slice();
     const persons = [...this.state.persons];
     persons.splice(personIndex, 1);
-    this.setState({ persons: persons });
+    this.setState((prevState,props ) => {
+      return { persons: persons };
+    });
   };
 
   togglePersonsHandler = () => {
@@ -64,10 +81,19 @@ class App extends Component {
     this.setState({ showPersons: !doesShow });
   };
 
-  render() {
-    console.log('[App.js] render');
-    let persons = null;
+  hideCockpitHandler = () => {
+    const doesShow = this.state.showCockpit;
+    this.setState({ showCockpit: !doesShow });
+  }
 
+  loginHandler = () => {
+    this.setState({authenticated:true});
+  }
+
+  render() {
+    console.log("[App.js] render");
+    let persons = null;
+    let cockpit = null;
     if (this.state.showPersons) {
       persons = (
         <Persons
@@ -77,20 +103,28 @@ class App extends Component {
         />
       );
     }
-
-    return (
-      <div className={classes.App}>
+    if (this.state.showCockpit) {
+      cockpit = (
         <Cockpit
           title={this.props.appTitle}
           showPersons={this.state.showPersons}
-          persons={this.state.persons}
+          personsLength={this.state.persons.length}
           clicked={this.togglePersonsHandler}
+          hide={this.hideCockpitHandler}
         />
+      );
+    }
+
+    return (
+      <Aux>
+        <AuthContext.Provider value = {{authenticated:this.state.authenticated, login:this.loginHandler}}>
+        {cockpit  }
         {persons}
-      </div>
+        </AuthContext.Provider>
+      </Aux>
     );
     // return React.createElement('div', {className: 'App'}, React.createElement('h1', null, 'Does this work now?'));
   }
 }
 
-export default App;
+export default withClass(App,classes.App);
