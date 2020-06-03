@@ -6,6 +6,7 @@ import Modal from "../../components/UI/Modal/Modal";
 import OrderSummary from "../../components/Burger/OrderSummary/OrderSummary";
 import axios from "../../axios-orders";
 import Spinner from "../../components/UI/Spinner/Spinner";
+import withErrorHandler from "../../hoc/withErrorHandler/withErrorHandler";
 
 const INGREDIENT_PRICES = {
   salad: 0.5,
@@ -27,6 +28,12 @@ class BurgerBuilder extends Component {
     purchasing: false,
     loading: false,
   };
+
+  componentDidMount() {
+    // axios.get('url-to-ingredients').then(response => {
+    //   this.setState({ingredients: response});
+    // })
+  }
 
   updatePurchaseState = (ingredients) => {
     const sum = Object.keys(ingredients)
@@ -84,26 +91,21 @@ class BurgerBuilder extends Component {
   };
 
   purchaseContinueHandler = () => {
-    this.setState({ loading: true });
-    const order = {
-      ingredients: this.state.ingredients,
-      price: this.state.totalPrice,
-      customer: {
-        name: "Tanishq Joshi",
-        adress: {
-          street: "Thane",
-          zip: "409312",
-          country: "India",
-        },
-        email: "test@gmail.com",
-        phone: "9999999999",
-      },
-      deliveryMethod: "fastest",
-    };
-    axios
-      .post("/orders", order)
-      .then((response) => this.setState({ loading: false, purchasing:false }))
-      .catch((error) => this.setState({ loading: false, purchasing:false }));
+    // this.setState({ loading: true });
+    const queryParams = [];
+    for (let i in this.state.ingredients) {
+      queryParams.push(
+        encodeURIComponent(i) +
+          "=" +
+          encodeURIComponent(this.state.ingredients[i])
+      );
+    }
+    queryParams.push("price=" + this.state.totalPrice);
+    const queryString = queryParams.join("&");
+    this.props.history.push({
+      pathname: "/checkout",
+      search: "?" + queryString,
+    });
   };
 
   render() {
@@ -124,6 +126,24 @@ class BurgerBuilder extends Component {
     for (let key in disabledInfo) {
       disabledInfo[key] = disabledInfo[key] <= 0;
     }
+
+    let burger = <Spinner />;
+    if (this.state.ingredients) {
+      burger = (
+        <Aux>
+          <Burger ingredients={this.state.ingredients} />
+          <BuildControls
+            purchasable={this.state.purchasable}
+            price={this.state.totalPrice}
+            ingredientAdded={this.addIngredientsHandler}
+            ingredientRemoved={this.removeIngredientsHandler}
+            disabled={disabledInfo}
+            ordered={this.purchaseHandler}
+          />
+        </Aux>
+      );
+    }
+
     return (
       <Aux>
         <Modal
@@ -132,18 +152,10 @@ class BurgerBuilder extends Component {
         >
           {OrderSummaryItem}
         </Modal>
-        <Burger ingredients={this.state.ingredients} />
-        <BuildControls
-          purchasable={this.state.purchasable}
-          price={this.state.totalPrice}
-          ingredientAdded={this.addIngredientsHandler}
-          ingredientRemoved={this.removeIngredientsHandler}
-          disabled={disabledInfo}
-          ordered={this.purchaseHandler}
-        />
+        {burger}
       </Aux>
     );
   }
 }
 
-export default BurgerBuilder;
+export default withErrorHandler(BurgerBuilder, axios);
